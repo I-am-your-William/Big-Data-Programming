@@ -245,7 +245,6 @@ with tab2:
     #type_of_graph = st.selectbox("Select Type of Graph", ["Histograms and Density Plots for Numerical Features", "Trends and Patterns Over Time", "Relationship between Features", "Bar Charts for Categorical Variables", "Box Plots for Identifying Outliers in Numerical Features"])
 
     # 1. Bar Charts for Categorical Variables
-
     # Top 10 Districts by Frequency
     top_districts = data1['district'].value_counts().nlargest(10).reset_index()
     top_districts.columns = ['district', 'count']  # Rename columns for clarity
@@ -257,39 +256,20 @@ with tab2:
     # Category Distribution
     fig = px.bar(data1, x=data1['category'].value_counts().index, y=data1['category'].value_counts().values,
                  title='Category Distribution of Clusters',
-                 labels={'x': 'Category', 'y': 'Number of Clusters'})
+                 labels={'x': 'Category', 'y': 'Number of Clusters'},
+                 color=data1['category'].value_counts().index)  # Add color parameter to specify the color based on category
     fig.update_layout(template='plotly_white')
     st.plotly_chart(fig)
 
-    # Calculate top clusters by total cases
-    top_clusters = data1.groupby('cluster')['cases_total'].sum().nlargest(10)
-
-    # Top Clusters by Total Cases
-    fig = px.bar(data1, x=top_clusters.values, y=top_clusters.index, orientation='h',
-                 title='Top 10 Clusters by Total Cases',
-                 labels={'x': 'Total Cases', 'y': 'Cluster'})
-    fig.update_layout(template='plotly_white', yaxis={'categoryorder': 'total ascending'})
-    st.plotly_chart(fig)
-
-    # 2. Box Plots for Identifying Outliers in Numerical Features
-
-    # Box Plot for Cases Total
-    fig = px.box(data1, y='cases_total', title='Box Plot of Cases Total', labels={'cases_total': 'Cases Total'})
-    fig.update_layout(template='plotly_white')
-    st.plotly_chart(fig)
-
-    # 3. Trends and Patterns Over Time
+    # 2. Trends and Patterns Over Time
     # Scatter plot for Year-Month vs. Cases Total with Category color
     fig = px.scatter(data1, x='year_month_str', y='cases_total', color='category',
                      title='Relationship between Year-Month and Cases Total', labels={'year_month_str': 'Year-Month', 'cases_total': 'Cases Total'})
     fig.update_layout(template='plotly_white')
     st.plotly_chart(fig)
 
-    # 4. Histograms and Density Plots for Numerical Features
-    fig = px.histogram(data1, x='cases_total', nbins=50, marginal='rug', color_discrete_sequence=['blue'],
-                       title='Distribution of Cases Total', labels={'cases_total': 'Cases Total'})
-    fig.update_layout(template='plotly_white')
-    st.plotly_chart(fig)
+
+
 
 
 
