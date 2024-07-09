@@ -15,10 +15,14 @@ df = df.drop(columns=columns_to_drop)
 
 # Display the first few rows of the cleaned DataFrame
 print(df.head())
-print(df.isnull().sum()) 
+print(df.isnull().sum())
 
 # Step 4: Drop rows with any missing values
 df = df.dropna()
+
+df = df.iloc[:-16] # Drop the last 16 rows
+
+print(df.tail())
 
 
 # Save the cleaned DataFrame locally
