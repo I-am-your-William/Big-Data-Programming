@@ -46,19 +46,18 @@ tab1, tab2 = st.tabs(["Cases Data", "Cluster Data"])
 
 # Tab 1: Cases Data
 with tab1:
-    st.write("Filter and visualize COVID-19 data by state, month, and year.")
-    type_of_graph = st.selectbox("Select Type of Graph", ["Kmeans Cluster", "State Data Analysis by Month and Year"])
+    st.subheader("Filter and visualize COVID-19 data by state, month, and year.")
+    type_of_graph = st.selectbox("Select Type of Graph", ["K-Means Cluster", "State Data Analysis by Month and Year"])
 
     # Convert the appropriate columns to numeric types
-    numeric_columns = ['cases_new',  'cases_active', 'cases_cluster', 
-                       'cases_recovered']
+    numeric_columns = ['cases_new',  'cases_active', 'cases_cluster', 'cases_recovered']
     for column in numeric_columns:
         data[column] = pd.to_numeric(data[column], errors='coerce')
 
     # Aggregate data by state: calculate mean for each numeric column
     state_data = data.groupby('state')[numeric_columns].mean()
 
-    if type_of_graph == "Kmeans Cluster":
+    if type_of_graph == "K-Means Cluster":
         # Standardize the data
         scaler = StandardScaler()
         scaled_data = scaler.fit_transform(state_data)
@@ -66,7 +65,7 @@ with tab1:
         # Use the Elbow Method to determine the optimal number of clusters
         inertia = []
         for k in range(1, 11):
-            kmeans = KMeans(n_clusters=k, random_state=0)
+            kmeans = KMeans(n_clusters=k, random_state=42)
             kmeans.fit(scaled_data)
             inertia.append(kmeans.inertia_)
 
@@ -77,25 +76,32 @@ with tab1:
                           yaxis_title='Inertia',
                           template='plotly_white')
         st.plotly_chart(fig)
+
+        st.write("""
+        **Graph Explanation:**
+        - **Graph Type**: Line plot for the Elbow Method to determine the optimal number of clusters.
+        - **X-axis**: Number of clusters (K).
+        - **Y-axis**: Inertia (within-cluster sum of squares)
+                      The inertia is calculated using the cases data for each state.""")
     
         # Standardize the data again (it might be redundant)
         scaled_data = scaler.fit_transform(state_data)
 
-        optimal_clusters = 4  
+        optimal_clusters = 4
         kmeans = KMeans(n_clusters=optimal_clusters, random_state=42)
         state_data['cluster'] = kmeans.fit_predict(scaled_data)
 
         #Rename the clusters for better interpretation
         cluster_names = ['Cluster 1', 'Cluster 2', 'Cluster 3', 'Cluster 4']  # Add more names if needed
         state_data['cluster'] = state_data['cluster'].map(lambda x: cluster_names[x])
-
-        # Visualize the renamed clusters using Plotly
+    
         fig = px.scatter(
             state_data,
             title='COVID-19 Clusters by State',
             x='cases_new',
             y='cases_active',
             color='cluster',
+            color_discrete_map={'Cluster 1': 'blue', 'Cluster 2': 'red', 'Cluster 3': 'orange', 'Cluster 4': 'green'},
             size='cases_new',
             hover_data={'cases_recovered': True, 'cases_cluster': True, 'State': state_data.index},  # Show state names in hover data
             labels={'cases_new': 'New Cases', 'cases_active': 'Active Cases'}
@@ -105,7 +111,7 @@ with tab1:
         fig.update_layout(
             template='plotly_white',
             showlegend=True,
-            title={'x': 0.5},  # Center the title
+            title={'x': 0},  # Align the title to the left
             xaxis={'title': 'New Cases'},
             yaxis={'title': 'Active Cases'}
         )
@@ -120,15 +126,54 @@ with tab1:
             st.write(", ".join(states_in_cluster))
 
         st.write("""
-        **Graph Explanation:**
+        ### Graph Explanation:
         - **Graph Type**: Scatter plot for K-means clustering analysis for Malaysian states.
         - **X-axis**: New Cases.
         - **Y-axis**: Active Cases.
-        - **Relationship**: Each point represents a state, colored by cluster.
         - **Output**: The plot shows the distribution of states based on new cases and active cases.
-        - **Meaning**: This helps to identify patterns and group states based on similar characteristics.
+                 This helps to identify patterns and group states based on similar characteristics.
         """)
 
+        st.markdown("""
+        ### Cluster Interpretation and Analysis:
+        - **Cluster 1 (Blue)**: States with moderate new cases and active cases.  
+                              Maintain vigilance and monitor the situation.  
+        - **Cluster 2 (Red)**: States with very high new cases and active cases.  
+                                Immediate action required to control the spread.  
+        - **Cluster 3 (Orange)**: States with high new cases and active cases.
+                                    Implement preventive measures to reduce cases.
+        - **Cluster 4 (Green)**: States with low new cases and active cases.  
+                                Continue monitoring and prepare for potential outbreaks.
+        """)
+
+        st.write("""
+        ### Recommendations:
+        ##### Cluster 1 (Blue):   
+          • Enhance healthcare capacity and public health surveillance to prepare for sudden case increases.  
+          • Expand ICUs and ensure medical supplies.  
+          • Promote preventive measures through awareness campaigns.           
+                 
+        ##### Cluster 2 (Red):  
+          • Implement strict lockdowns and movement restrictions to control the spread.  
+          • Increase testing, tracing, and vaccination efforts.  
+          • Strengthen border control and public health measures.  
+          • Vaccinate high-risk groups and frontline workers first.  
+         
+        
+        ##### Cluster 3 (Orange): 
+        • Implement targeted lockdowns and community awareness campaigns.  
+        • Foster community engagement to promote compliance with public health guidelines.  
+        • Ensure healthcare facilities are prepared to handle high case volumes.  
+        • Monitor and adapt strategies based on outbreak dynamics.  
+                 
+        ##### Cluster 4 (Green):
+        • Maintain public health measures and surveillance to prevent outbreaks.  
+        • Prepare healthcare facilities for potential case increases.  
+        • Monitor border control and quarantine measures to prevent importation of cases.  
+        • Continue vaccination campaigns to achieve herd immunity.
+        
+                 """)
+                 
     elif type_of_graph == "State Data Analysis by Month and Year":
         st.write("Choose a range of months and years to filter the data:")
 
@@ -223,11 +268,12 @@ with tab1:
 
                 for col in age_group_cols:
                     fig.add_trace(go.Bar(x=age_group_data['state'], y=age_group_data[col], name=col))
-
+                    
                 fig.update_layout(
                         title=f'COVID-19 Cases by Age Group for {start_month} {start_year} to {end_month} {end_year}',
                         xaxis_title='State',
                         yaxis_title='Number of Cases',
+                        
                         barmode='group',
                         template='plotly_white')
 
@@ -250,8 +296,7 @@ data1['year_month'] = data1['date_announced'].dt.to_period('M')
 data1['year_month_str'] = data1['year_month'].astype(str)
 
 with tab2:
-    st.title("Visualize COVID-19 data by cluster and district.")
-    #type_of_graph = st.selectbox("Select Type of Graph", ["Histograms and Density Plots for Numerical Features", "Trends and Patterns Over Time", "Relationship between Features", "Bar Charts for Categorical Variables", "Box Plots for Identifying Outliers in Numerical Features"])
+    st.subheader("Visualize COVID-19 data by cluster and district.")
 
     # 1. Bar Charts for Categorical Variables
     # Top 10 Districts by Frequency
@@ -267,7 +312,6 @@ with tab2:
     - **Graph Type**: Bar chart for the top 10 districts by frequency.
     - **X-axis**: District.
     - **Y-axis**: Number of clusters.
-    - **Relationship**: Each bar represents a district, colored by district.
     - **Output**: The plot shows the distribution of clusters across the top 10 districts.
     - **Meaning**: This helps to identify the districts with the highest number of clusters.""")
 
@@ -283,8 +327,7 @@ with tab2:
     **Graph Explanation:**
     - **Graph Type**: Bar chart for the distribution of clusters by category.
     - **X-axis**: Category.
-    - **Y-axis**: Number of clusters.
-    - **Relationship**: Each bar represents a category, colored by category.
+    - **Y-axis**: Number of clusters. 
     - **Output**: The plot shows the distribution of clusters across different categories.
     - **Meaning**: This helps to identify the distribution of clusters based on category.""")
 
@@ -300,9 +343,5 @@ with tab2:
     - **Graph Type**: Scatter plot for the relationship between year-month and cases total.
     - **X-axis**: Year-Month.
     - **Y-axis**: Cases Total.
-    - **Relationship**: Each point represents a cluster, colored by category.
     - **Output**: The plot shows the distribution of cases total over time.
     - **Meaning**: This helps to identify trends and patterns of cases total over different months.""")
-
-
-
