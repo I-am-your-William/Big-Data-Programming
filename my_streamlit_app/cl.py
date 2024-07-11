@@ -28,10 +28,10 @@ def main():
             # Create a datetime column for the last day of the end month and year
             end_date = pd.to_datetime(f"{end_year}-{end_month}-01") + pd.offsets.MonthEnd(1)
             
-            # Filter the data based on the date range
+            # Filter the data based on the date range 
             data = data[(data['date'] >= start_date) & (data['date'] <= end_date)]
 
-        # Filter by state if provided
+        # Filter by state if selected
         if states:
             data = data[data['state'].isin(states)]
             
@@ -59,7 +59,7 @@ def main():
         state_data = data.groupby('state')[numeric_columns].mean()
 
         if type_of_graph == "K-Means Cluster":
-            # Standardize the data
+            # Standardize the data , Fit and transform the data
             scaler = StandardScaler()
             scaled_data = scaler.fit_transform(state_data)
 
@@ -85,17 +85,19 @@ def main():
             - **Y-axis**: Inertia (within-cluster sum of squares)
                         The inertia is calculated using the cases data for each state.""")
         
-            # Standardize the data again (it might be redundant)
+            # Standardize the data again 
             scaled_data = scaler.fit_transform(state_data)
 
+            # Fit KMeans clustering model with optimal clusters
             optimal_clusters = 4
             kmeans = KMeans(n_clusters=optimal_clusters, random_state=42)
             state_data['cluster'] = kmeans.fit_predict(scaled_data)
 
             #Rename the clusters for better interpretation
-            cluster_names = ['Cluster 1', 'Cluster 2', 'Cluster 3', 'Cluster 4']  # Add more names if needed
+            cluster_names = ['Cluster 1', 'Cluster 2', 'Cluster 3', 'Cluster 4']  
             state_data['cluster'] = state_data['cluster'].map(lambda x: cluster_names[x])
         
+            # Create a scatter plot for the K-means clustering analysis
             fig = px.scatter(
                 state_data,
                 title='COVID-19 Clusters by State',
@@ -108,18 +110,16 @@ def main():
                 labels={'cases_new': 'New Cases', 'cases_active': 'Active Cases'}
             )
 
-            # Update layout for better visual presentation
             fig.update_layout(
                 template='plotly_white',
                 showlegend=True,
-                title={'x': 0},  # Align the title to the left
+                title={'x': 0},  
                 xaxis={'title': 'New Cases'},
                 yaxis={'title': 'Active Cases'}
             )
 
             st.plotly_chart(fig)
 
-            # Optionally, display the states in each cluster below the chart
             st.write("### States by Cluster")
             for cluster in cluster_names:
                 st.write(f"**{cluster}:**")
@@ -160,7 +160,6 @@ def main():
             • Strengthen border control and public health measures.  
             • Vaccinate high-risk groups and frontline workers first.  
             
-            
             ##### Cluster 3 (Orange): 
             • Implement targeted lockdowns and community awareness campaigns.  
             • Foster community engagement to promote compliance with public health guidelines.  
@@ -173,7 +172,7 @@ def main():
             • Monitor border control and quarantine measures to prevent importation of cases.  
             • Continue vaccination campaigns to achieve herd immunity.
             
-                    """)
+            """)
                     
         elif type_of_graph == "State Data Analysis by Month and Year":
             st.write("Choose a range of months and years to filter the data:")
@@ -215,6 +214,7 @@ def main():
             
             else:
                 button = st.button("Apply Filter")
+                # Validation checks
                 if end_year < start_year or (end_year == start_year and end_month_index < start_month_index):
                     st.error("End date must be after the start date.")
                 if not states:
@@ -228,14 +228,15 @@ def main():
             if disable_filters or button:
                 filtered_data = preprocess_data_state(data, start_month_index, start_year, end_month_index, end_year, states, show_full_data)
 
+                # Display full dataset range if selected
                 if show_full_data:
                     st.write(f"**Full dataset range:** {min_date.strftime('%B %Y')} to {max_date.strftime('%B %Y')}")
                     st.subheader("Full Dataset")
 
-                
                 if filtered_data.empty:
                     st.write(f"No data available for the selected range.")
                 else:
+                    # Line Chart for Daily New Cases
                     st.subheader(f"Data Summary from {start_month} {start_year} to {end_month} {end_year}")
                     fig = px.line(filtered_data, x='date', y='cases_new', color='state',
                                 title=f'Daily New Cases from {start_month} {start_year} to {end_month} {end_year}',
@@ -244,7 +245,7 @@ def main():
 
                     #Each State by Cases and Age Group
 
-                    state_cols = ['cases_new', 'cases_active', 'cases_recovered', 'cases_cluster']
+                    state_cols = ['cases_new', 'cases_recovered', 'cases_cluster']
                     state_data = filtered_data.groupby('state')[state_cols].sum().reset_index()
 
                     fig = go.Figure()
@@ -273,8 +274,7 @@ def main():
                     fig.update_layout(
                             title=f'COVID-19 Cases by Age Group for {start_month} {start_year} to {end_month} {end_year}',
                             xaxis_title='State',
-                            yaxis_title='Number of Cases',
-                            
+                            yaxis_title='Number of Cases',                       
                             barmode='group',
                             template='plotly_white')
 
@@ -292,13 +292,13 @@ def main():
 
     # Load data
     data1 = load_data_district()
+
     # Create 'year_month' column before any further processing
     data1['year_month'] = data1['date_announced'].dt.to_period('M')
     data1['year_month_str'] = data1['year_month'].astype(str)
 
     with tab2:
         st.subheader("Visualize COVID-19 data by cluster and district.")
-        #type_of_graph = st.selectbox("Select Type of Graph", ["Histograms and Density Plots for Numerical Features", "Trends and Patterns Over Time", "Relationship between Features", "Bar Charts for Categorical Variables", "Box Plots for Identifying Outliers in Numerical Features"])
 
         # 1. Bar Charts for Categorical Variables
         # Top 10 Districts by Frequency
@@ -317,7 +317,7 @@ def main():
         - **Output**: The plot shows the distribution of clusters across the top 10 districts.
         - **Meaning**: This helps to identify the districts with the highest number of clusters.""")
 
-        # Category Distribution
+        # Category Distribution of Clusters
         fig = px.bar(data1, x=data1['category'].value_counts().index, y=data1['category'].value_counts().values,
                     title='Category Distribution of Clusters',
                     labels={'x': 'Category', 'y': 'Number of Clusters'},
@@ -334,7 +334,7 @@ def main():
         - **Meaning**: This helps to identify the distribution of clusters based on category.""")
 
         # 2. Trends and Patterns Over Time
-        # Scatter plot for Year-Month vs. Cases Total with Category color
+        # Scatter plot for Year-Month vs. Cases Total with Category
         fig = px.scatter(data1, x='year_month_str', y='cases_total', color='category',
                         title='Relationship between Year-Month and Cases Total', labels={'year_month_str': 'Year-Month', 'cases_total': 'Cases Total'})
         fig.update_layout(template='plotly_white')
@@ -350,4 +350,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-

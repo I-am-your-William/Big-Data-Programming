@@ -102,33 +102,34 @@ def calculate_rvei(df):
 
 # Function to create the combined map figure
 def create_combined_map(df, geojson):
+    # Initialize a new Plotly figure object
     fig = go.Figure()
 
     # Define color scales for different metrics
     color_scales = {
         'RVEI': [
-            [0.0, "#FF69B4"],  
-            [0.5, "#800080"],  
-            [1.0, "#06D6A0"]   
+            [0.0, "#FF69B4"],  # Min value color
+            [0.5, "#800080"],  # Mid value color
+            [1.0, "#06D6A0"]   # Max value color
         ],
         'Total Cases': [
-            [0.0, "#FFBE0B"],  
-            [0.5, "#FF006E"],  
-            [1.0, "#3A86FF"]   
+            [0.0, "#FFBE0B"],  # Min value color
+            [0.5, "#FF006E"],  # Mid value color
+            [1.0, "#3A86FF"]   # Max value color
         ],
         'Total Vaccinations': [
-            [0.0, "#020202"],  
-            [0.5, "#7B2CBF"],  
-            [1.0, "#BB0A21"]   
+            [0.0, "#020202"],  # Min value color
+            [0.5, "#008631"],  # Mid value color
+            [1.0, "#BB0A21"]   # Max value color
         ],
         'Total Recoveries': [
-            [0.0, "#FEE440"],  
-            [0.5, "#FE7F2D"],  
-            [1.0, "#D90429"]   
+            [0.0, "#439CEF"],  # Min value color
+            [0.5, "#0504AA"],  # Mid value color
+            [1.0, "#D90429"]   # Max value color
         ]
     }
 
-    # Ensure columns for formatted data are present
+    # Ensure columns for formatted data are present by applying the format_number function
     df['formatted_cases'] = df['total_cases'].apply(format_number)
     df['formatted_vaccinations'] = df['total_full_vaccinations'].apply(format_number)
     df['formatted_recoveries'] = df['total_recoveries'].apply(format_number)
@@ -141,73 +142,73 @@ def create_combined_map(df, geojson):
         'Total Recoveries': 'total_recoveries'
     }
 
-    # Add trace for each metric
+    # Add a choropleth mapbox trace for each metric
     for metric_name, metric_column in metrics.items():
         fig.add_trace(go.Choroplethmapbox(
-            geojson=geojson,
-            locations=df['name'],
-            z=df[metric_column] if metric_name != 'RVEI' else df['RVEI'],
-            featureidkey="properties.name",
-            colorscale=color_scales[metric_name],
-            zmin=df[metric_column].min() if metric_name != 'RVEI' else df['RVEI'].min(),
-            zmax=df[metric_column].max() if metric_name != 'RVEI' else df['RVEI'].max(),
-            marker_opacity=0.5,
-            marker_line_width=0.5,
-            name=metric_name,
-            visible=False,
-            hovertemplate=(
+            geojson=geojson,                     # Use the provided GeoJSON object
+            locations=df['name'],                # Match the locations in the DataFrame
+            z=df[metric_column] if metric_name != 'RVEI' else df['RVEI'],  # Use the appropriate column for z values
+            featureidkey="properties.name",      # Match the GeoJSON features by name
+            colorscale=color_scales[metric_name],# Apply the defined color scale
+            zmin=df[metric_column].min() if metric_name != 'RVEI' else df['RVEI'].min(),  # Set the minimum value for the color scale
+            zmax=df[metric_column].max() if metric_name != 'RVEI' else df['RVEI'].max(),  # Set the maximum value for the color scale
+            marker_opacity=0.5,                  # Set marker opacity
+            marker_line_width=0.5,               # Set marker line width
+            name=metric_name,                    # Set the trace name
+            visible=False,                       # Make the trace invisible by default
+            hovertemplate=(                      # Define the hover information template
                 f'<b>%{{location}}</b><br>' +
                 f'{metric_name}: %{{z:.2f}}<br>' +
                 'Total Cases: %{customdata[0]}<br>' +
                 'Total Full Vaccinations: %{customdata[1]}<br>' +
                 'Total Recoveries: %{customdata[2]}<br>'
             ),
-            customdata=df[['formatted_cases', 'formatted_vaccinations', 'formatted_recoveries']].values
+            customdata=df[['formatted_cases', 'formatted_vaccinations', 'formatted_recoveries']].values  # Additional data for hover
         ))
 
-    # Set default visible trace
+    # Set the first trace to be visible by default
     fig.data[0].visible = True
 
     # Update layout with dropdown menu
     fig.update_layout(
-        mapbox_style="carto-positron",
-        mapbox_zoom=5,
-        mapbox_center={"lat": 4.0, "lon": 113.5},
-        margin={"r":0,"t":0,"l":0,"b":0},
+        mapbox_style="carto-positron",           # Set the Mapbox style
+        mapbox_zoom=5,                           # Set the zoom level
+        mapbox_center={"lat": 4.0, "lon": 113.5},# Center the map
+        margin={"r":0,"t":0,"l":0,"b":0},        # Set the margins
         updatemenus=[
             {
-                'buttons': [
+                'buttons': [                     # Add buttons for each metric to the dropdown menu
                     {
-                        'label': metric_name,
-                        'method': 'update',
-                        'args': [{'visible': [metric_name == trace.name for trace in fig.data]}]
+                        'label': metric_name,    # Set the button label
+                        'method': 'update',      # Set the update method
+                        'args': [{'visible': [metric_name == trace.name for trace in fig.data]}]  # Set visibility for each trace
                     } for metric_name in metrics.keys()
                 ],
-                'direction': 'down',
-                'showactive': True,
-                'x': 0.0,          # Position x to 0.0 (left edge)
-                'xanchor': 'left', # Anchor to the left
-                'y': 1.0,          # Position y to 1.0 (top edge)
-                'yanchor': 'top'   # Anchor to the top
+                'direction': 'down',             # Dropdown menu direction
+                'showactive': True,              # Show the active item
+                'x': 0.0,                        # Set the x position
+                'xanchor': 'left',               # Anchor the x position to the left
+                'y': 1.0,                        # Set the y position
+                'yanchor': 'top'                 # Anchor the y position to the top
             }
         ],
         legend=dict(
-            title=dict(text='Metrics', font=dict(size=12)),
-            orientation="h",
-            yanchor="bottom",
-            y=1.02,
-            xanchor="right",
-            x=1
+            title=dict(text='Metrics', font=dict(size=12)),  # Set legend title and font size
+            orientation="h",                # Horizontal legend orientation
+            yanchor="bottom",               # Anchor the y position to the bottom
+            y=1.02,                         # Set the y position
+            xanchor="right",                # Anchor the x position to the right
+            x=1                             # Set the x position
         )
     )
     
+    # Return the final figure
     return fig
-
 
 
 # Define the main function for each page
 def home_app():
-    st.title("COVID-19 Impact Navigator - Home")
+    st.title("Malaysia COVID-19 Impact Navigator - Home")
     st.write("The graph shows RVEI (Recovery and Vaccination Effectiveness Index) across Malaysia, indicating recovery and vaccination effectiveness by state.")
 
     # Load data
@@ -225,14 +226,15 @@ def home_app():
     st.markdown("""
     **Graph Explanation:**
     - **Graph Type**: Choropleth map.
-    - **Metric Displayed**: RVEI (Recovery and Vaccination Effectiveness Index).
-    - **Color Scale**: Represents the RVEI with bright pink, purple, and blue colors.
-    - **Hover Information**: Displays total cases, total full vaccinations, and total recoveries for each state.
+    - **Metric Displayed**: RVEI (Recovery and Vaccination Effectiveness Index), Total Cases, Total Vaccinations, Total Recoveries.
+    - **Hover Information**: Displays RVEI, total cases, total full vaccinations, and total recoveries for each state.
     - **Meaning**: This map visualizes the relationship between total cases, vaccinations, and recoveries. Higher RVEI values indicate higher effectiveness of recoveries and vaccinations relative to the number of cases.
     - **Significance**: 
       - **High RVEI**: Indicates that a region has a high number of recoveries and full vaccinations relative to its total number of cases, suggesting effective management of the pandemic.
       - **Low RVEI**: Indicates a lower proportion of recoveries and full vaccinations relative to the total number of cases, suggesting a need for improved recovery and vaccination efforts.
-    - **Visualization**: The choropleth map uses a color scale ranging from bright pink to blue, where bright pink indicates lower RVEI values and blue indicates higher RVEI values.
+    - **Total Cases**: Sum of new cases reported for each state.
+    - **Total Vaccinations**: Sum of fully vaccinated individuals for each state.
+    - **Total Recoveries**: Sum of recovered cases for each state.
     """)
 
 def zy_page():
@@ -251,35 +253,36 @@ def js_page():
 st.sidebar.image('C:/zhengyang/Inti/BCSCUN/Sem 6/Big Data/logo.jpg', width=200)  # Add logo image to the sidebar
 
 # Use buttons for page navigation
-button_home = st.sidebar.button("COVID-19 Impact Navigator", key="home")
-button_zy = st.sidebar.button("Malaysia COVID-19 Vaccination and Death Data Analysis", key="zy")
+button_home = st.sidebar.button("Malaysia COVID-19 Impact Navigator", key="home")
+button_zy = st.sidebar.button("COVID-19 Vaccination and Death Data Analysis", key="zy")
 button_gx = st.sidebar.button("AEFI and Second Dataset Analysis", key="gx")
 button_cl = st.sidebar.button("COVID-19 Data Visualization for Malaysia", key="cl")
-button_js = st.sidebar.button("JS Page", key="js")
+button_js = st.sidebar.button("COVID-19 Impact on Malaysia's Economy", key="js")
+
 
 # Define page rendering based on button clicks
 if 'selected_page' not in st.session_state:
-    st.session_state.selected_page = "COVID-19 Impact Navigator - Home"
+    st.session_state.selected_page = "Malaysia COVID-19 Impact Navigator - Home"
 
 if button_home:
-    st.session_state.selected_page = "COVID-19 Impact Navigator - Home"
+    st.session_state.selected_page = "Malaysia COVID-19 Impact Navigator - Home"
 elif button_zy:
-    st.session_state.selected_page = "Malaysia COVID-19 Vaccination and Death Data Analysis"
+    st.session_state.selected_page = "COVID-19 Vaccination and Death Data Analysis"
 elif button_gx:
     st.session_state.selected_page = "AEFI and Second Dataset Analysis"
 elif button_cl:
     st.session_state.selected_page = "COVID-19 Data Visualization for Malaysia"
 elif button_js:
-    st.session_state.selected_page = "JS Page"
+    st.session_state.selected_page = "COVID-19 Impact on Malaysia's Economy"
 
 # Render the selected page
-if st.session_state.selected_page == "COVID-19 Impact Navigator - Home":
+if st.session_state.selected_page == "Malaysia COVID-19 Impact Navigator - Home":
     home_app()
-elif st.session_state.selected_page == "Malaysia COVID-19 Vaccination and Death Data Analysis":
+elif st.session_state.selected_page == "COVID-19 Vaccination and Death Data Analysis":
     zy_page()
 elif st.session_state.selected_page == "AEFI and Second Dataset Analysis":
     gx_page()
 elif st.session_state.selected_page == "COVID-19 Data Visualization for Malaysia":
     cl_page()
-elif st.session_state.selected_page == "JS Page":
+elif st.session_state.selected_page == "COVID-19 Impact on Malaysia's Economy":
     js_page()
